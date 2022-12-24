@@ -8,10 +8,10 @@
 `include "clockworks.v"
 
 module Memory (
-   input             clk,
-   input      [31:0] mem_addr,  // address to be read
+   input  wire           clk,
+   input  wire    [31:0] mem_addr,  // address to be read
    output reg [31:0] mem_rdata, // data read from memory
-   input   	     mem_rstrb  // goes high when processor wants to read
+   input  wire 	     mem_rstrb  // goes high when processor wants to read
 );
 
    reg [31:0] MEM [0:255]; 
@@ -37,11 +37,11 @@ endmodule
 
 
 module Processor (
-    input 	      clk,
-    input 	      resetn,
-    output     [31:0] mem_addr, 
-    input      [31:0] mem_rdata, 
-    output 	      mem_rstrb,
+    input  wire      clk,
+    input  wire      resetn,
+    output wire   [31:0] mem_addr, 
+    input  wire   [31:0] mem_rdata, 
+    output wire      mem_rstrb,
     output reg [31:0] x1		  
 );
 
@@ -88,7 +88,7 @@ module Processor (
 `ifdef BENCH   
    integer     i;
    initial begin
-      for(i=0; i<32; ++i) begin
+      for(i=0; i<32; i = i + 1) begin
 	 RegisterBank[i] = 0;
       end
    end
@@ -240,15 +240,21 @@ endmodule
 
 
 module SOC (
-    input  CLK,        // system clock 
-    input  RESET,      // reset button
-    output [4:0] LEDS, // system LEDs
-    input  RXD,        // UART receive
-    output TXD         // UART transmit
+    input  wire CLK,        // system clock 
+    input  wire RESET,      // reset button
+    output wire [4:0] LEDS, // system LEDs
+    input  wire RXD,        // UART receive
+    output wire TXD         // UART transmit
 );
 
    wire    clk;
    wire    resetn;
+
+   wire [31:0] mem_addr;
+   wire [31:0] mem_rdata;
+   wire mem_rstrb;
+   wire [31:0] x1;
+
 
    Memory RAM(
       .clk(clk),
@@ -256,11 +262,6 @@ module SOC (
       .mem_rdata(mem_rdata),
       .mem_rstrb(mem_rstrb)
    );
-
-   wire [31:0] mem_addr;
-   wire [31:0] mem_rdata;
-   wire mem_rstrb;
-   wire [31:0] x1;
 
    Processor CPU(
       .clk(clk),

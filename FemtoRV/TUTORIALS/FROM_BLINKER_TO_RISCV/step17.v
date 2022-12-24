@@ -8,12 +8,12 @@
 `include "emitter_uart.v"
 
 module Memory (
-   input             clk,
-   input      [31:0] mem_addr,  // address to be read
-   output reg [31:0] mem_rdata, // data read from memory
-   input   	     mem_rstrb, // goes high when processor wants to read
-   input      [31:0] mem_wdata, // data to be written
-   input      [3:0]  mem_wmask	// masks for writing the 4 bytes (1=write byte)
+   input  wire        clk,
+   input  wire [31:0] mem_addr,  // address to be read
+   output reg  [31:0] mem_rdata, // data read from memory
+   input  wire 	      mem_rstrb,  // goes high when processor wants to read
+   input  wire [31:0] mem_wdata, // data to be written
+   input  wire [3:0]  mem_wmask	// masks for writing the 4 bytes (1=write byte) 
 );
 
    reg [31:0] MEM [0:1535]; // 1536 4-bytes words = 6 Kb of RAM in total
@@ -120,13 +120,13 @@ endmodule
 
 
 module Processor (
-    input 	  clk,
-    input 	  resetn,
-    output [31:0] mem_addr, 
-    input [31:0]  mem_rdata, 
-    output 	  mem_rstrb,
-    output [31:0] mem_wdata,
-    output [3:0]  mem_wmask
+    input  wire	       clk,
+    input  wire        resetn,
+    output wire [31:0] mem_addr, 
+    input  wire [31:0] mem_rdata, 
+    output wire        mem_rstrb,
+    output wire [31:0]     mem_wdata,
+    output wire [3:0]      mem_wmask
 );
 
    reg [31:0] PC=0;        // program counter
@@ -172,7 +172,7 @@ module Processor (
 `ifdef BENCH   
    integer     i;
    initial begin
-      for(i=0; i<32; ++i) begin
+      for(i=0; i<32; i = i + 1) begin
 	 RegisterBank[i] = 0;
       end
    end
@@ -260,29 +260,10 @@ module Processor (
 				             Bimm[31:0] );
    wire [31:0] PCplus4 = PC+4;
    
-   // register write back
-   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
-			      isLUI         ? Uimm      :
-			      isAUIPC       ? PCplusImm :
-			      isLoad        ? LOAD_data :
-			                      aluOut;
-
-   wire [31:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
-	                                  isJALR   ? {aluPlus[31:1],1'b0} :
-	                                             PCplus4;
-
-   wire [31:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
-   
-   // Load
-   // All memory accesses are aligned on 32 bits boundary. For this
-   // reason, we need some circuitry that does unaligned halfword
-   // and byte load/store, based on:
-   // - funct3[1:0]:  00->byte 01->halfword 10->word
-   // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
    wire mem_byteAccess     = funct3[1:0] == 2'b00;
    wire mem_halfwordAccess = funct3[1:0] == 2'b01;
 
+   wire [31:0] loadstore_addr = rs1 + (isStore ? Simm : Iimm);
 
    wire [15:0] LOAD_halfword =
 	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
@@ -299,6 +280,28 @@ module Processor (
          mem_byteAccess ? {{24{LOAD_sign}},     LOAD_byte} :
      mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
                           mem_rdata ;
+   
+   // register write back
+   assign writeBackData = (isJAL || isJALR) ? PCplus4   :
+			      isLUI         ? Uimm      :
+			      isAUIPC       ? PCplusImm :
+			      isLoad        ? LOAD_data :
+			                      aluOut;
+
+   wire [31:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
+	                                  isJALR   ? {aluPlus[31:1],1'b0} :
+	                                             PCplus4;
+
+
+   
+   // Load
+   // All memory accesses are aligned on 32 bits boundary. For this
+   // reason, we need some circuitry that does unaligned halfword
+   // and byte load/store, based on:
+   // - funct3[1:0]:  00->byte 01->halfword 10->word
+   // - mem_addr[1:0]: indicates which byte/halfword is accessed
+
+
 
    // Store
    // ------------------------------------------------------------------------
@@ -395,11 +398,11 @@ endmodule
 
 
 module SOC (
-    input 	     CLK, // system clock 
-    input 	     RESET, // reset button
+    input  wire       CLK,        // system clock 
+    input  wire       RESET,      // reset button
     output reg [4:0] LEDS, // system LEDs
-    input 	     RXD, // UART receive
-    output 	     TXD         // UART transmit
+    input  wire       RXD,        // UART receive
+    output wire       TXD         // UART transmit
 );
 
    wire clk;

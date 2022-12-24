@@ -8,10 +8,10 @@
 `include "clockworks.v"
 
 module Memory (
-   input             clk,
-   input      [31:0] mem_addr,  // address to be read
-   output reg [31:0] mem_rdata, // data read from memory
-   input   	     mem_rstrb  // goes high when processor wants to read
+   input  wire        clk,
+   input  wire [31:0] mem_addr,  // address to be read
+   output reg  [31:0] mem_rdata, // data read from memory
+   input  wire 	    mem_rstrb  // goes high when processor wants to read
 );
 
    reg [31:0] MEM [0:255]; 
@@ -65,12 +65,12 @@ endmodule
 
 
 module Processor (
-    input 	      clk,
-    input 	      resetn,
-    output     [31:0] mem_addr, 
-    input      [31:0] mem_rdata, 
-    output 	      mem_rstrb,
-    output reg [31:0] x10 = 0		  
+    input  wire	     clk,
+    input  wire        resetn,
+    output wire [31:0] mem_addr, 
+    input  wire [31:0] mem_rdata, 
+    output wire        mem_rstrb,
+    output reg  [31:0] x10 = 0		  
 );
 
    reg [31:0] PC=0;        // program counter
@@ -116,7 +116,7 @@ module Processor (
 `ifdef BENCH   
    integer     i;
    initial begin
-      for(i=0; i<32; ++i) begin
+      for(i=0; i<32; i = i + 1) begin
 	 RegisterBank[i] = 0;
       end
    end
@@ -204,6 +204,46 @@ module Processor (
 				             Bimm[31:0] );
    wire [31:0] PCplus4 = PC+4;
    
+
+   // The state machine
+   localparam FETCH_INSTR = 0;
+   localparam WAIT_INSTR  = 1;
+   localparam FETCH_REGS  = 2;
+   localparam EXECUTE     = 3;
+   localparam LOAD        = 4;
+   localparam WAIT_DATA   = 5;
+   reg [2:0] state = FETCH_INSTR;
+
+
+   // Load
+   // All memory accesses are aligned on 32 bits boundary. For this
+   // reason, we need some circuitry that does unaligned halfword
+   // and byte load/store, based on:
+   // - funct3[1:0]:  00->byte 01->halfword 10->word
+   // - mem_addr[1:0]: indicates which byte/halfword is accessed
+
+   wire mem_byteAccess     = funct3[1:0] == 2'b00;
+   wire mem_halfwordAccess = funct3[1:0] == 2'b01;
+
+   wire [31:0] loadstore_addr = rs1 + Iimm;
+
+   wire [15:0] LOAD_halfword =
+	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
+
+   wire  [7:0] LOAD_byte =
+	       loadstore_addr[0] ? LOAD_halfword[15:8] : LOAD_halfword[7:0];
+
+   // LOAD, in addition to funct3[1:0], LOAD depends on:
+   // - funct3[2] (instr[14]): 0->do sign expansion   1->no sign expansion
+   wire LOAD_sign =
+	!funct3[2] & (mem_byteAccess ? LOAD_byte[7] : LOAD_halfword[15]);
+
+
+   wire [31:0] LOAD_data =
+         mem_byteAccess ? {{24{LOAD_sign}},     LOAD_byte} :
+     mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
+                          mem_rdata ;
+
    // register write back
    assign writeBackData = (isJAL || isJALR) ? PCplus4   :
 			      isLUI         ? Uimm      :
@@ -219,45 +259,7 @@ module Processor (
    wire [31:0] nextPC = ((isBranch && takeBranch) || isJAL) ? PCplusImm   :
 	                                  isJALR   ? {aluPlus[31:1],1'b0} :
 	                                             PCplus4;
-
-   wire [31:0] loadstore_addr = rs1 + Iimm;
    
-   // Load
-   // All memory accesses are aligned on 32 bits boundary. For this
-   // reason, we need some circuitry that does unaligned halfword
-   // and byte load/store, based on:
-   // - funct3[1:0]:  00->byte 01->halfword 10->word
-   // - mem_addr[1:0]: indicates which byte/halfword is accessed
-
-   wire mem_byteAccess     = funct3[1:0] == 2'b00;
-   wire mem_halfwordAccess = funct3[1:0] == 2'b01;
-
-
-   wire [15:0] LOAD_halfword =
-	       loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
-
-   wire  [7:0] LOAD_byte =
-	       loadstore_addr[0] ? LOAD_halfword[15:8] : LOAD_halfword[7:0];
-
-   // LOAD, in addition to funct3[1:0], LOAD depends on:
-   // - funct3[2] (instr[14]): 0->do sign expansion   1->no sign expansion
-   wire LOAD_sign =
-	!funct3[2] & (mem_byteAccess ? LOAD_byte[7] : LOAD_halfword[15]);
-
-   wire [31:0] LOAD_data =
-         mem_byteAccess ? {{24{LOAD_sign}},     LOAD_byte} :
-     mem_halfwordAccess ? {{16{LOAD_sign}}, LOAD_halfword} :
-                          mem_rdata ;
-
-   
-   // The state machine
-   localparam FETCH_INSTR = 0;
-   localparam WAIT_INSTR  = 1;
-   localparam FETCH_REGS  = 2;
-   localparam EXECUTE     = 3;
-   localparam LOAD        = 4;
-   localparam WAIT_DATA   = 5;
-   reg [2:0] state = FETCH_INSTR;
    
    always @(posedge clk) begin
       if(!resetn) begin
@@ -312,15 +314,20 @@ endmodule
 
 
 module SOC (
-    input  CLK,        // system clock 
-    input  RESET,      // reset button
-    output [4:0] LEDS, // system LEDs
-    input  RXD,        // UART receive
-    output TXD         // UART transmit
+    input  wire       CLK,        // system clock 
+    input  wire       RESET,      // reset button
+    output wire [4:0] LEDS,       // system LEDs
+    input  wire       RXD,        // UART receive
+    output wire       TXD         // UART transmit
 );
 
    wire clk;
    wire resetn;
+
+   wire [31:0] mem_addr;
+   wire [31:0] mem_rdata;
+   wire mem_rstrb;
+   wire [31:0] x10;
 
    Memory RAM(
       .clk(clk),
@@ -328,11 +335,6 @@ module SOC (
       .mem_rdata(mem_rdata),
       .mem_rstrb(mem_rstrb)
    );
-
-   wire [31:0] mem_addr;
-   wire [31:0] mem_rdata;
-   wire mem_rstrb;
-   wire [31:0] x10;
 
    Processor CPU(
       .clk(clk),

@@ -16,8 +16,8 @@
 module femtoPLL #(
  parameter freq = 60
 ) (
- input 	pclk,
- output clk	   
+ input wire	pclk,
+ output wire clk	   
 );
    assign clk = pclk;   
 endmodule
