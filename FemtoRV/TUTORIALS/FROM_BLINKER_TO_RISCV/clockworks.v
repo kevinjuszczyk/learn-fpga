@@ -32,11 +32,11 @@
 
 module Clockworks 
 (
-   input  CLK, // clock pin of the board
-   input  RESET, // reset pin of the board
-   output clk,   // (optionally divided) clock for the design.
+   input  wire CLK, // clock pin of the board
+   input  wire RESET, // reset pin of the board
+   output wire clk,   // (optionally divided) clock for the design.
                  // divided if SLOW is different from zero.
-   output resetn // (optionally timed) negative reset for the design
+   output wire resetn // (optionally timed) negative reset for the design
 );               
    parameter SLOW=0;
 

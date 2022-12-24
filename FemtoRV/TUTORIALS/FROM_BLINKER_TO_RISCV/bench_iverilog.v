@@ -1,3 +1,5 @@
+`timescale 1 ns / 100 ps
+
 module bench();
    reg CLK;
    wire RESET = 0; 
@@ -17,7 +19,7 @@ module bench();
    initial begin
       CLK = 0;
       forever begin
-	 #1 CLK = ~CLK;
+	 #10 CLK = ~CLK;
 	 if(LEDS != prev_LEDS) begin
 	    $display("LEDS = %b",LEDS);
 	 end

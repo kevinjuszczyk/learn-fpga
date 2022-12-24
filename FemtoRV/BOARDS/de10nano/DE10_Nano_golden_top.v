@@ -143,7 +143,7 @@ module DE10_Nano_golden_top(
 //  Structural coding
 //=======================================================
 
-
+SOC s0 (.CLK(FPGA_CLK1_50), .RESET(KEY[1]), .LEDS(LED[4:0]), .RXD(GPIO_1[35]), .TXD(GPIO_1[34]));
 
 
 

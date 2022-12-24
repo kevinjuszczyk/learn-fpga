@@ -27,9 +27,9 @@ FemtoRV/TOOLS/environment.yml
 FemtoRV/TOOLS/requirements.txt
 *.png
 *.bak
-/db
-/simulation
-/incremental_db
+db/
+simulation/
+incremental_db/
 *.sof
 *.rpt
 *.summary
@@ -42,7 +42,7 @@ FemtoRV/TOOLS/requirements.txt
 *.qws
 *.log
 *.chg
-/output_files
+output_files/
 /.sopc_builder
 /sopc_builder_log.txt
 /nios_system_log.txt
@@ -58,3 +58,6 @@ obj
 *.a
 nios_workspace
 *.flock
+*.smsg
+*.sld
+FemtoRV/BOARDS/de10nano/c5_pin_model_dump.txt

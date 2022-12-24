@@ -7,11 +7,11 @@
 `include "clockworks.v"
 
 module SOC (
-    input  CLK,        // system clock 
-    input  RESET,      // reset button
-    output [4:0] LEDS, // system LEDs
-    input  RXD,        // UART receive
-    output TXD         // UART transmit
+    input  wire CLK,        // system clock 
+    input  wire RESET,      // reset button
+    output wire [4:0] LEDS, // system LEDs
+    input  wire RXD,        // UART receive
+    output wire TXD         // UART transmit
 );
 
    wire clk;    // internal clock
