@@ -14,7 +14,7 @@
 
 `ifdef PASSTHROUGH_PLL
 module femtoPLL #(
- parameter freq = 60
+ parameter freq = 50
 ) (
  input wire	pclk,
  output wire clk	   

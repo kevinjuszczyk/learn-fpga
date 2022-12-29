@@ -30,6 +30,10 @@
 `define NEGATIVE_RESET
 `endif
 
+`ifdef DE10NANO
+`define NEGATIVE_RESET
+`endif
+
 module Clockworks 
 (
    input  wire CLK, // clock pin of the board
